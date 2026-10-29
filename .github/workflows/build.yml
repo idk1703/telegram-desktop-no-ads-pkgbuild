@@ -12,7 +12,7 @@ jobs:
 
     steps:
       - name: Install dependencies
-        run: pacman -Suy --noconfirm --needed base-devel sudo
+        run: pacman -Suy --noconfirm --needed base-devel sudo ccache
 
       - name: Number of processors
         run: nproc
@@ -26,6 +26,7 @@ jobs:
       - name: Patch makepkg.conf
         run: |
           sed -Ei "s/^#(MAKEFLAGS=).*$/\\1\"-j$(nproc)\"/; /^OPTIONS=/ s/debug //" /etc/makepkg.conf
+          sed -Ei '/^BUILDENV=/ s/!ccache/ccache/' /etc/makepkg.conf
           cat /etc/makepkg.conf
 
       - name: Create non root user
@@ -37,10 +38,25 @@ jobs:
         uses: actions/checkout@v6
 
       - name: Change ownership
-        run: chown -R builder:builder .
+        run: |
+          chown -R builder:builder .
+          mkdir -p /home/builder/.cache/ccache
+          chown -R builder:builder /home/builder/.cache
+
+      - name: Cache ccache
+        uses: actions/cache@v4
+        with:
+          path: /home/builder/.cache/ccache
+          key: ccache-${{ runner.os }}-${{ github.ref_name }}-${{ github.run_id }}
+          restore-keys: |
+            ccache-${{ runner.os }}-${{ github.ref_name }}-
+            ccache-${{ runner.os }}-
 
       - name: Build Arch Linux package
         run: sudo -u builder makepkg --syncdeps --noconfirm
+
+      - name: Show ccache statistics
+        run: sudo -u builder ccache -s
 
       - name: Disk space after
         run: df -h .

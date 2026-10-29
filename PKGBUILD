@@ -1,16 +1,19 @@
 # https://gitlab.archlinux.org/archlinux/packaging/packages/telegram-desktop
 pkgname=telegram-desktop-no-ads
-pkgver=7.2.9
-_td_commit=bc9c263e2bfee06aaab41e82db51a103376030bc
+pkgver=7.3.3
+_td_commit=c15d3f5a5de6e3ba5839822c451152e5e18bb700
+_wallet_engine_ver=0.0.7
 pkgrel=1
 pkgdesc='Patched Telegram Desktop client without ads'
 arch=('x86_64')
 url="https://desktop.telegram.org/"
-license=('GPL3')
+license=('GPL-3.0-or-later WITH OpenSSL-exception')
 depends=(
   'abseil-cpp'
   'ada'
+  'cairo'
   'ffmpeg'
+  'fontconfig'
   'glib2'
   'glibc'
   'hicolor-icon-theme'
@@ -26,6 +29,7 @@ depends=(
   'libsrtp'
   'libstdc++'
   'libvpx'
+  'libx11'
   'libxcb'
   'libxcomposite'
   'libxdamage'
@@ -40,6 +44,7 @@ depends=(
   'openh264'
   'openssl'
   'opus'
+  'pango'
   'pipewire'
   'qt6-base'
   'qt6-declarative'
@@ -54,10 +59,12 @@ depends=(
 makedepends=(
   'boost'
   'boost-libs'
+  'cargo'
   'cmake'
   'git'
   'glib2-devel'
   'gobject-introspection'
+  'just'
   'qt6-shadertools'
   'gperf'
   'libtg_owt'
@@ -68,6 +75,13 @@ makedepends=(
   'tl-expected'
   'vulkan-headers'
 )
+optdepends=(
+  'geoclue: geoinformation support'
+  'crow-translate: translation provider'
+  'webkit2gtk-4.1: embedded browser features provided by webkit2gtk-4.1 (gtk3)'
+  'webkitgtk-6.0: embedded browser features provided by webkitgtk-6.0 (gtk4)'
+  'xdg-desktop-portal: desktop integration'
+)
 conflicts=("telegram-desktop")
 
 # Patches are from feature/remove-ads branch:
@@ -75,21 +89,36 @@ conflicts=("telegram-desktop")
 # git format-patch upstream/dev..feature/remove-ads --stdout > remove-ads.patch
 source=(
     "https://github.com/telegramdesktop/tdesktop/releases/download/v${pkgver}/tdesktop-${pkgver}-full.tar.gz"
-    "git+https://github.com/tdlib/td.git#tag=${_td_commit}"
+    "git+https://github.com/tdlib/td.git#commit=${_td_commit}"
+    "wallet-engine-${_wallet_engine_ver}.tar.gz::https://github.com/i582/wallet-engine/archive/refs/tags/v${_wallet_engine_ver}.tar.gz"
+    "https://github.com/desktop-app/patches/raw/refs/heads/master/wallet-engine.patch"
     "remove-ads.patch"
 )
-sha256sums=(
-    "SKIP"
-    "SKIP"
-    8b8304da4034723245e20b48326ced65428b8d78fc449bfe9ac8e76adce419d0
+sha512sums=(
+    '3e76971f5ac1c8b4f29c867cf2a6e52f5eb71e479533daaaef26ba8bf53c10c6dd0abc09bb99ec213582546a50fa5306b2bcad023e85024979ebf04603c48540'
+    'dd4741b3621c5e76ba7c9eee44ffd41b1e6b6c24fdb19988efd780d307aff79a9dcfd710be9ad63db6857cbbd71c273c54d82be524a5326fc22f1233d9eb6ca2'
+    'f1a38de20459c5b780c98aaab037fdf34357980e7f3b93c4b523636d016ca4ffc9d9679c2ee4a246b138ef0474b8190d2db1874b204c006b0f30b3c950c62ff6'
+    '79460145f706d3eb244335700a30be2e6862db2bcda042244cf45ec5227956130a366c54a4240167327e33fde4c9fa671305a7f942acedd17e994d24e0612a2b'
+    '87edf4438787c22cede8ed4b795373103c6c5c50671be09a92ed33ac358398fdde2a64c8c304f0212f04da23660284e08e48973c0ec3b962660cdbb84eb97b12'
 )
 
 prepare() {
-    cd tdesktop-$pkgver-full
+    cd "${srcdir}/wallet-engine-${_wallet_engine_ver}"
+    patch -Np1 -i "${srcdir}/wallet-engine.patch"
+
+    cd "${srcdir}/tdesktop-${pkgver}-full"
     patch --forward --strip=1 -i "${srcdir}/remove-ads.patch"
 }
 
 build() {
+    cd "${srcdir}/wallet-engine-${_wallet_engine_ver}"
+    just build
+    just bindings-cpp
+    install -Dm644 target/release/libwallet_engine.a -t install/lib/
+    install -Dm644 bindings/cpp-experimental/* -t install/include/wallet_engine/
+
+    cd "${srcdir}"
+
     cmake -S td -B td/build \
         -DCMAKE_BUILD_TYPE=None \
         -DCMAKE_INSTALL_PREFIX="$PWD/td/install" \
@@ -98,10 +127,12 @@ build() {
     cmake --build td/build
     cmake --install td/build
 
-    cmake -B build -S tdesktop-$pkgver-full -G Ninja \
+    cmake -B build -S "tdesktop-${pkgver}-full" -G Ninja \
+        -DCMAKE_VERBOSE_MAKEFILE=ON \
         -DCMAKE_INSTALL_PREFIX="/usr" \
         -Dtde2e_DIR="$PWD/td/install/lib/cmake/tde2e" \
-        -DCMAKE_BUILD_TYPE=Release \
+        -DCMAKE_PREFIX_PATH="$PWD/wallet-engine-${_wallet_engine_ver}/install" \
+        -DCMAKE_BUILD_TYPE=None \
         -DTDESKTOP_API_ID=611335 \
         -DTDESKTOP_API_HASH=d524b414d21f4d37f08684c1df41ac9c
     cmake --build build
