@@ -12,7 +12,7 @@ jobs:
 
     steps:
       - name: Install dependencies
-        run: pacman -Suy --noconfirm --needed base-devel sudo ccache
+        run: pacman -Suy --noconfirm --needed base-devel sudo ccache clang
 
       - name: Number of processors
         run: nproc
@@ -54,6 +54,9 @@ jobs:
 
       - name: Build Arch Linux package
         run: sudo -u builder makepkg --syncdeps --noconfirm
+        env:
+          CC: clang
+          CXX: clang++
 
       - name: Show ccache statistics
         run: sudo -u builder ccache -s
