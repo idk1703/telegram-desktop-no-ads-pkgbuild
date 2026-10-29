@@ -40,8 +40,8 @@ jobs:
       - name: Change ownership
         run: |
           chown -R builder:builder .
-          mkdir -p /home/builder/.cache/ccache
-          chown -R builder:builder /home/builder/.cache
+          mkdir -p /home/builder/.cache/ccache /home/builder/.cargo
+          chown -R builder:builder /home/builder/.cache /home/builder/.cargo
 
       - name: Cache ccache
         uses: actions/cache@v4
