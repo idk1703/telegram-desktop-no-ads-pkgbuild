@@ -55,8 +55,8 @@ jobs:
       - name: Build Arch Linux package
         run: sudo -u builder makepkg --syncdeps --noconfirm
         env:
-          CC: clang
-          CXX: clang++
+          CC: "ccache clang"
+          CXX: "ccache clang++"
 
       - name: Show ccache statistics
         run: sudo -u builder ccache -s
