@@ -120,6 +120,9 @@ build() {
     cd "${srcdir}"
 
     cmake -S td -B td/build \
+        -DCMAKE_C_COMPILER=/usr/bin/clang \
+        -DCMAKE_CXX_COMPILER=/usr/bin/clang++ \
+        -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
         -DCMAKE_BUILD_TYPE=None \
         -DCMAKE_INSTALL_PREFIX="$PWD/td/install" \
         -Wno-dev \
@@ -128,6 +131,9 @@ build() {
     cmake --install td/build
 
     cmake -B build -S "tdesktop-${pkgver}-full" -G Ninja \
+        -DCMAKE_C_COMPILER=/usr/bin/clang \
+        -DCMAKE_CXX_COMPILER=/usr/bin/clang++ \
+        -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
         -DCMAKE_VERBOSE_MAKEFILE=ON \
         -DCMAKE_INSTALL_PREFIX="/usr" \
         -Dtde2e_DIR="$PWD/td/install/lib/cmake/tde2e" \
