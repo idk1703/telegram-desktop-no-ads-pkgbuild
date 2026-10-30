@@ -26,6 +26,7 @@ jobs:
       - name: Patch makepkg.conf
         run: |
           sed -Ei "s/^#(MAKEFLAGS=).*$/\\1\"-j$(nproc)\"/; /^OPTIONS=/ s/debug //" /etc/makepkg.conf
+          sed -Ei '/^BUILDENV=/ s/!ccache/ccache/' /etc/makepkg.conf
           cat /etc/makepkg.conf
 
       - name: Create non root user
