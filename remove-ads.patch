@@ -497,8 +497,8 @@ diff --git a/Telegram/SourceFiles/dialogs/dialogs_widget.cpp b/Telegram/SourceFi
 index 959e22ebef..f11e6bc685 100644
 --- a/Telegram/SourceFiles/dialogs/dialogs_widget.cpp
 +++ b/Telegram/SourceFiles/dialogs/dialogs_widget.cpp
-@@ -422,12 +422,7 @@ Widget::Widget(
- 	object_ptr<Ui::IconButton>(this, st::dialogsLock))
+@@ -243,12 +243,7 @@ Widget::Widget(
+ , _chatsFilterForTopBarSuggestion(controller->activeChatsFilterCurrent())
  , _scroll(this)
  , _scrollToTop(_scroll, st::dialogsToUp)
 -, _stories((_layout != Layout::Child)
@@ -646,7 +646,7 @@ diff --git a/Telegram/SourceFiles/history/view/history_view_list_widget.cpp b/Te
 index 6868759bfb..87f90ce5ca 100644
 --- a/Telegram/SourceFiles/history/view/history_view_list_widget.cpp
 +++ b/Telegram/SourceFiles/history/view/history_view_list_widget.cpp
-@@ -2150,39 +2150,19 @@ bool ListWidget::isEmpty() const {
+@@ -2371,32 +2371,19 @@ bool ListWidget::isEmpty() const {
  }
  
  bool ListWidget::hasCopyRestriction(HistoryItem *item) const {
@@ -662,17 +662,10 @@ index 6868759bfb..87f90ce5ca 100644
  }
  
  bool ListWidget::showCopyRestriction(HistoryItem *item) {
--	const auto type = _delegate->listCopyRestrictionType(item);
--	if (type == CopyRestrictionType::None) {
--		return false;
--	}
--	_delegate->listUiShow()->showToast((type == CopyRestrictionType::Channel)
--		? tr::lng_error_nocopy_channel(tr::now)
--		: (type == CopyRestrictionType::User)
--		? tr::lng_error_nocopy_user(tr::now)
--		: tr::lng_error_nocopy_group(tr::now));
--	return true;
-+    return false;
+-	return Tgw::ShowCopyRestriction(
+-		_delegate->listCopyRestrictionType(item),
+-		[=] { return _delegate->listUiShow(); });
++	return false;
  }
  
  bool ListWidget::showCopyMediaRestriction(not_null<HistoryItem*> item) {
@@ -686,7 +679,7 @@ index 6868759bfb..87f90ce5ca 100644
 -		? tr::lng_error_nocopy_user(tr::now)
 -		: tr::lng_error_nocopy_group(tr::now));
 -	return true;
-+    return false;
++	return false;
  }
  
  bool ListWidget::hasCopyRestrictionForSelected() const {
@@ -694,7 +687,7 @@ diff --git a/Telegram/SourceFiles/media/view/media_view_overlay_widget.cpp b/Tel
 index f57d4314b9..70959a974e 100644
 --- a/Telegram/SourceFiles/media/view/media_view_overlay_widget.cpp
 +++ b/Telegram/SourceFiles/media/view/media_view_overlay_widget.cpp
-@@ -1440,16 +1440,7 @@ QSize OverlayWidget::flipSizeByRotation(QSize size) const {
+@@ -1474,17 +1474,7 @@ QSize OverlayWidget::flipSizeByRotation(QSize size) const {
  }
  
  bool OverlayWidget::hasCopyMediaRestriction(bool skipPremiumCheck) const {
@@ -707,7 +700,8 @@ index f57d4314b9..70959a974e 100644
 -			: !story->canDownloadChecked();
 -	}
 -	return (_history && !_history->peer->allowsForwarding())
--		|| (_message && _message->forbidsSaving());
+-		|| (_message && _message->forbidsSaving())
+-		|| (_history && _screenshotProtected);
 +	return false;
  }
  
@@ -730,9 +724,7 @@ diff --git a/Telegram/SourceFiles/dialogs/dialogs_widget.cpp b/Telegram/SourceFi
 index f11e6bc685..f1a9084f89 100644
 --- a/Telegram/SourceFiles/dialogs/dialogs_widget.cpp
 +++ b/Telegram/SourceFiles/dialogs/dialogs_widget.cpp
-@@ -804,10 +804,6 @@ Widget::Widget(
- 	}
- 
+@@ -632,8 +632,4 @@
  	setupFrozenAccountBar();
 -	setupTopBarSuggestions();
 -#ifdef _DEBUG
