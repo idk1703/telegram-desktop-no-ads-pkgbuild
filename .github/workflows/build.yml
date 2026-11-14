@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: archlinux:latest
-      options: --memory-swap=10g
+      options: --memory=8g --memory-swap=10g
 
     steps:      
       - name: Install dependencies
